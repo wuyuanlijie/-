@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <form action="javascript:;" method="post" id='registerForm'>
+    请输入用户名<input type="text" name="userName" ><br>
+    请输入密  码<input type="text" name="passWord"><br>
+    请输入手机号<input type="text" name="phoneNumber"><br>
+    <button type="submit">提交</button>
+  </form>
+  <script type="text/javascript">
+    //封装代码 用于对象字面量形式对象内部的方法
+    //这里面封装这strategies各种方法 来判断输入
+    var strategies = {
+      isNonEmpty: function (value, errorMsg) {
+        if (value === '') {
+           return errorMsg;
+        }
+      },
+      minLength: function (value, length, errorMsg) {
+        if (value.length < length) {
+           return errorMsg;
+        }
+      },
+      isMobile: function (value, errorMsg) {
+        if (!/^1[1|3|4|5|7|8][0-9]{9}$/.test(value)) {
+          console.log(value);
+           return errorMsg;
+        }
+      },
+    }
+
+    //创建抽象对象 来检测输入问题 并且返回错误信息
+    var Validator = function() {
+      this.cache = [];
+    }
+    Validator.prototype.start = function() {
+      for (var i = 0, func; func = this.cache[i++];) {
+        var msg = func();
+        //返回错误信息 如果为空的的话 就是false 下面就不会执行
+        if (msg) {
+          return msg;
+        }
+      }
+    }
+    //添加检测信息 因为我们需要传入value length errorMsg
+    //我们将它封装成一个方法 当调用cache内部的对象也就是方法时候 调用strategies对象字面量方法返回errorMsg
+    Validator.prototype.add = function(ele, rule, errorMsg) {
+      //切割字符串 这里存在length 我们必须将它分开 才能取值
+      var arr = rule.split(':');  //这里就可以获得一个字符串数组 里面两个元素
+      //在之前的数组中添加对象
+
+      this.cache.push(function() {
+        //删除并且返回数组的第一个元素 这里面存放的对象中方法名称 这样我们就调用它的方法
+        var strategy = arr.shift();
+        arr.unshift(ele.value);  //添加输入input的值value
+        arr.push(errorMsg); //添加错误信息
+        //调用strategies中的方法 并且传入参数 ele取代当前对象strategies （其实没什么意义）
+        //这里最主要就是使用这个方法 并且传入参数
+        console.log(arr);
+        console.log(...arr);
+        //或者直接使用展开运算符 将数组展开 就可以传入参数 不然就使用apply
+        return strategies[strategy](...arr);
+
+        // return strategies[strategy].apply(ele, arr)  这样就会报错 arr是个数组
+        // 这就传入的就是对象 apply是传入对象或者数组
+      })
+    }
+    function validateFunc() {
+      //主要检测函数 分离信息
+      //实例化对象 然后添加里面的add
+      var validator = new Validator();
+      validator.add(registerForm.userName, 'isNonEmpty', '用户名不能为空啊!');
+      validator.add(registerForm.passWord, 'minLength:6', '密码长度不能小于6位哦!');
+      validator.add(registerForm.phoneNumber, 'isMobile', '请输入正确的手机号呀！');
+      //add 返回的errorMsg 存入数组cache 直接取出阿里就行
+      //如果没有错误 返回就是空的 就会执行下去
+      //这是一种断点 如果为空数据就不会传入数组 如果有传入了信息 就说明有错误信息 return false; 停止action
+      var errorMsg = validator.start();
+      return errorMsg;
+    }
+
+    //开始执行方法
+    const registerForm = document.getElementById('registerForm');
+    registerForm.onsubmit = function() { //表单提交onsubmit
+      // 一堆堆的规则 数组
+      var errorMsg = validateFunc();
+      //这样就不用每一个都要去写个if() 这样你就可以用一个去获得 里面数组遍历
+      if (errorMsg) { //如果存在字符串 就是为true 不存在值得时候就是为false
+        alert(errorMsg);
+        return false;
+      }
+    }
+  </script>
+
+</body>
+</html>
